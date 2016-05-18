@@ -1,0 +1,409 @@
+/* -*- c++ -*- */
+/* 
+ * Copyright 2013 <+YOU OR YOUR COMPANY+>.
+ * 
+ * This is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3, or (at your option)
+ * any later version.
+ * 
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this software; see the file COPYING.  If not, write to
+ * the Free Software Foundation, Inc., 51 Franklin Street,
+ * Boston, MA 02110-1301, USA.
+ */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <gnuradio/io_signature.h>
+#include "chirp_downconvert_impl.h"
+
+/*
+  pthread_create needs void* both for parameter and return type
+*/
+/*
+extern "C" void* thread_routine(void* obj)
+{
+  static_cast<gr::juha::chirp_downconvert_impl*>(obj)->file_closer();
+  return(obj);
+}
+*/
+
+namespace gr {
+  namespace juha {
+
+    chirp_downconvert::sptr
+    chirp_downconvert::make()
+    {
+      return gnuradio::get_initial_sptr
+        (new chirp_downconvert_impl());
+    }
+
+    /*
+      if we can close a file, then close it in a separate thread to avoid blocking on close.
+      also, do all writing to file in a separate thread, to avoid blocking work
+    */
+    void chirp_downconvert_impl::file_closer()
+    {
+      int ignore = write(f,&outbuff[0],sizeof(complex_float)*buffi);
+      close(f);
+      printf("closing file...\n");
+      f=0;
+      buffi=0;
+    }
+    
+    void chirp_downconvert_impl::complex_mul(complex_float *a, complex_float *res){
+      float tmp;
+      //res = (a.re + 1i*a.im)*(res.re + 1i*res.im)
+      //res.re = (a.re*res.re) - a.im*res*im
+      //res.im = (a.im*res.re) + a.re*res.im
+      tmp = res->re;
+      res->re = a->re*tmp - a->im*res->im;
+      res->im = a->im*tmp + a->re*res->im;
+    }
+
+    void chirp_downconvert_impl::complex_add(complex_float *a, complex_float *res){
+      res->re = res->re + a->re;
+      res->im = res->im + a->im;
+    }
+    
+    /*
+     * The private constructor
+     */
+    chirp_downconvert_impl::chirp_downconvert_impl()
+      : gr::sync_block("chirp_downconvert",
+              gr::io_signature::make(1, 1, 8),
+              gr::io_signature::make(0, 0, 0))
+    {
+      // nothing else required in this example
+      
+      f = 0;
+      
+      sr = 20e6;
+      dec = 500;
+      startt = -1.0;
+      startt_u64=0;
+      dur_u64=0;
+      
+      
+      dur = 30.0;
+      f0 = -10e6;
+      rate = 0.5e6;
+      
+      chirpt=0.0;
+      
+      ncurr = 0;
+      sample_count = 0;
+      
+      
+      first = 0;
+      done = 1;
+      waiting = 0;
+      overflow=0;
+      
+      outs.re = 0.0;
+      outs.im = 0.0;
+      
+      lag = 0.0;
+      obuffi=0;
+      
+      last_check=0;
+      last_check_i=0;
+      
+      /* 
+         Generate table.
+      */
+      for(int i=0 ; i<TABL ; i++)
+      {
+        sintab[i].re = (float)cos(-2.0*M_PI*((double)i)/((double)TABL));
+        sintab[i].im = (float)sin(-2.0*M_PI*((double)i)/((double)TABL));
+      }
+
+      closefile = DO_NOTHING;
+      closealive=1;
+      /*      pthread_mutex_init(&fileclose_mutex, NULL);
+      pthread_cond_init (&file_can_be_closed, NULL);
+      pthread_attr_init(&attr);
+      pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+      pthread_create(&write_thread, &attr, &thread_routine, this);
+      pthread_attr_destroy(&attr);
+      */
+    }
+
+    /*
+     * Our virtual destructor.
+     */
+    chirp_downconvert_impl::~chirp_downconvert_impl()
+    {
+      void **status;
+      status=NULL;
+      /*
+      pthread_mutex_lock(&fileclose_mutex);
+      closefile=CLOSE_FILE;
+      closealive=0;
+      pthread_cond_signal(&file_can_be_closed);  
+      pthread_mutex_unlock(&fileclose_mutex);
+      
+      pthread_join(write_thread,status);
+      
+      pthread_mutex_destroy(&fileclose_mutex);
+      pthread_cond_destroy(&file_can_be_closed); */
+    }
+
+    void chirp_downconvert_impl::set_f0(double f)
+    { 
+      f0=f; 
+    }
+
+    void chirp_downconvert_impl::set_timing(double t, double d)
+    {
+      startt = t;
+      startt_u64 = (uint64_t) (t*sr);
+      dur = d;
+      dur_u64 = (uint64_t) (d*sr);
+      done = 0;
+      chirpt=0.0;
+      waiting = 1;
+    }
+
+    void chirp_downconvert_impl::set_samp_rate(double s)
+    {
+      sr = s;
+      dt = 1.0/sr;
+    }
+    
+    int chirp_downconvert_impl::is_done()
+    {
+      return(done);
+    }
+
+    void chirp_downconvert_impl::get_rx_time()
+    {
+      std::vector<gr::tag_t> rx_time_tags;
+      get_tags_in_range(rx_time_tags, 0, 0, 1e6, pmt::string_to_symbol("rx_time"));
+      
+      // print all tags
+      BOOST_FOREACH(const gr::tag_t &rx_time_tag, rx_time_tags)
+      {
+        const uint64_t count = rx_time_tag.offset;
+        const pmt::pmt_t &value = rx_time_tag.value;
+        
+        //    const uint64_t count = gr_tags::get_nitems(rx_time_tag);
+        //    const pmt::pmt_t &value = gr_tags::get_value(rx_time_tag);
+        
+        t0_sec = pmt::to_uint64(pmt::tuple_ref(value, 0));
+        t0_frac = pmt::to_double(pmt::tuple_ref(value, 1));
+        t0 = ((double)t0_sec) + t0_frac;
+        t0_u64 = (uint64_t)(t0_sec*sr) +(uint64_t)(t0_frac*sr);
+        
+        printf("offset %d t0 %f\n",(int)count,t0);
+      }
+      
+      struct timeval tv;
+      gettimeofday(&tv, NULL);
+      
+      first = 1;
+      last_check=1000000;
+    }
+
+    /* detect an overflow */
+    void chirp_downconvert_impl::detect_overflow(uint64_t start, uint64_t end)
+    {
+      std::vector<gr::tag_t> rx_time_tags;
+      get_tags_in_range(rx_time_tags, 0, start, end, pmt::string_to_symbol("rx_time"));
+      
+      
+      BOOST_FOREACH(const gr::tag_t &rx_time_tag, rx_time_tags)
+      {
+        const uint64_t count = rx_time_tag.offset;
+        const pmt::pmt_t &value = rx_time_tag.value;
+        
+        uint64_t tt0_sec = pmt::to_uint64(pmt::tuple_ref(value, 0));
+        double tt0_frac = pmt::to_double(pmt::tuple_ref(value, 1));
+        double tt0 = ((double)tt0_sec) + tt0_frac;
+        
+        double ddt = tt0-(t0+((double)count)*dt);
+        t0 = t0+ddt;
+        // fixme: use uint64_t arithmetic.
+        t0_u64 = (uint64_t)(t0*sr);
+#ifdef DEBUG_OVERFLOW
+        printf("dropped packet, moving t0 by %d samples.\n",(int)(ddt*sr));
+#endif
+        chirpt += ddt;
+        overflow++;
+      }
+    }
+
+    int chirp_downconvert_impl::get_overflow()
+    {
+      return(overflow);
+    }
+    
+    double chirp_downconvert_impl::get_lag()
+    {
+      return(lag);
+    }
+    
+
+    // f0 and freq rate
+    void chirp_downconvert_impl::set_chirp_par(double f, double r)
+    {
+      f0 = f;
+      rate = r;
+    }
+
+    /* 
+       mean = mean + exp(1i*2*pi*(f0+0.5*f1*t)*t)*a
+       lookup table. Not optimized in any way.
+       
+       we should optimize this. complex_mul could be vectorized
+    */
+    void chirp_downconvert_impl::add_and_advance_phasor(complex_float *a, complex_float *mean)
+    {
+      complex_float tmp;
+      
+      // this is faster 
+      int64_t idx = (int64_t)(TABL*(f0+0.5*rate*chirpt)*chirpt) % TABL;
+      if(idx < 0)
+        idx = TABL+idx;
+      
+      // than this
+      // int64_t idx = (((int64_t)(TABL*(f0+0.5*rate*chirpt)*chirpt) % TABL) + TABL) % TABL;
+      
+      tmp = sintab[idx];
+      complex_mul(a, &tmp);
+      complex_add(&tmp, mean);
+    }
+
+    // integration and decimation window size
+    void chirp_downconvert_impl::set_dec(int d)
+    {
+      dec = d;
+    }
+    
+    // file name to output chirp
+    void chirp_downconvert_impl::set_fname(char *ff)
+    {
+      strncpy(fname,ff,2048);
+    }
+
+
+    int
+    chirp_downconvert_impl::work(int noutput_items,
+				 gr_vector_const_void_star &input_items,
+				 gr_vector_void_star &output_items)
+    {
+      complex_float *in = (complex_float *) input_items[0];
+      
+      /* 
+         If the just block started, read in the rx_time stream tag. 
+         It is tagged along with the ethernet packet. 
+      */
+      if(!first)
+        get_rx_time();
+      else 
+        detect_overflow(sample_count,sample_count+noutput_items);
+      
+      /* if we are done, skip everything */
+      if(done)
+      {
+        sample_count += noutput_items;
+        return(noutput_items);
+      }
+
+      /* 
+         if we are past our window
+         - stop processing 
+         - close file
+      */
+      if( (sample_count + t0_u64) > (startt_u64+dur_u64) && done == 0 )
+      {
+        printf("done processing...\n");
+        
+	file_closer();
+        done = 1;
+        sample_count += noutput_items;
+        return(noutput_items);
+      }
+      
+      /* 
+         if this block contains no relevant samples, skip it 
+      */
+      if( (noutput_items + sample_count + t0_u64) < startt_u64 )
+      {
+        sample_count += noutput_items;
+        return(noutput_items);
+      }
+
+      // we only reach this point if we are recording a chirp.
+      
+      /* 
+         if this block contains relevant samples, drop samples until we have the correct starting sample.
+      */
+      int i=0;
+      while( (t0_u64 + sample_count + i) < startt_u64 )
+        i++;
+      
+      /* if we haven't started, start a new file */
+      if(waiting)
+      {
+        //        printf("starting %s at %llu %llu\n",fname,sample_count + i,startt_u64);
+        fflush(stdout);
+        
+        ncurr=0;
+        buffi=0;
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        double cputime = (double)tv.tv_sec+((double)tv.tv_usec)/1e6;
+        double usrptime = (t0+((double)i)*dt + ((double)sample_count)*dt);
+        printf("Lag: %1.1f Sec: %1.5f Usrp sec %1.5f\n", cputime-usrptime, cputime, usrptime);
+        lag = cputime-usrptime;
+        
+        f = open(fname,O_WRONLY|O_CREAT,0664);
+        
+        waiting = 0;
+      }
+      
+      /* 
+         Multiply with chirp and average. 
+         If we have averaged enough, dump sample to file.
+      */
+      while(i < noutput_items)
+      {
+#ifndef NO_CALC
+	/* chirp */
+        add_and_advance_phasor(&in[i],&outs);
+#endif
+        chirpt += dt;
+        i++;             /* sample index in this work call */
+        ncurr++;         /* number of samples going into the current average */
+        
+        /* If we have enough samples in average, then write it to file. */
+        if(ncurr == dec)
+        {
+          outbuff[buffi++] = outs;
+          ncurr=0;
+          outs.re = 0.0;
+          outs.im = 0.0;
+          
+          // todo: detect if obuffi wraps over. 
+          if(buffi == OUTBUFFSIZE){
+	    int ignore = write(f,&outbuff[0],sizeof(complex_float)*OUTBUFFSIZE);
+	    buffi=0;
+	  }
+        }
+      }
+      sample_count += noutput_items;
+      return(noutput_items);
+    }
+    
+  } /* namespace juha */
+} /* namespace gr */
+

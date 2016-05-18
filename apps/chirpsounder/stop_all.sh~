@@ -1,0 +1,3 @@
+#!/bin/bash
+
+kill `ps ax |grep chirp.py | grep -v |xargs`

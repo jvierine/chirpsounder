@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<block>
+  <name>cspecsink</name>
+  <key>juha_cspecsink</key>
+  <category>juha</category>
+  <import>import juha</import>
+  <make>juha.cspecsink($fftlen, $n_avg)</make>
+  <!-- Make one 'param' node for every Parameter you want settable from the GUI.
+       Sub-nodes:
+       * name
+       * key (makes the value accessible as $keyname, e.g. in the make node)
+       * type -->
+  <param>
+    <name>fftlen</name>
+    <key>fftlen</key>
+    <type>int</type>
+  </param>
+  <param>
+    <name>n_avg</name>
+    <key>n_avg</key>
+    <type>int</type>
+  </param>
+  <!-- Make one 'sink' node per input. Sub-nodes:
+       * name (an identifier for the GUI)
+       * type
+       * vlen
+       * optional (set to 1 for optional inputs) -->
+  <sink>
+    <name>in0</name>
+    <type>complex</type>
+  </sink>
+  <sink>
+    <name>in1</name>
+    <type>complex</type>
+  </sink>
+</block>

@@ -1,0 +1,22 @@
+Quick start
+
+Find interesting transmitters (and timings) here, eg., using this site:
+http://websdr.ewi.utwente.nl:8901/chirps/
+
+Calculate great circle distance between transmitter and you using, eg.,:
+http://www.daftlogic.com/projects-google-maps-distance-calculator.htm
+
+edit chirp_config.py and add the sounders that you are interested in,
+and select rmin and rmax to reflect the ranges that you expect echoes
+from (rmin should be about the great circle path, and rmax maybe 5000
+to 15000 km more than that).
+
+make sure that data_dir in chirp_config.py is readable for you. 
+
+run chirp.py to accumulate data, and then run chirp_calc.py to analyze
+results. 
+
+If you get overflows, turn off adaptive filtering (whiten=False) in
+chirp_config.py. If you still get overflows, reduce sample rate. 
+
+

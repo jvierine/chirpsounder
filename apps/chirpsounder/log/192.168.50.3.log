@@ -1,0 +1,50 @@
+linux; GNU C++ version 4.6.3; Boost_105300; UHD_003.006.002-1-g9fd308b3
+
+Press Ctrl-C to stop
+-- Opening a USRP2/N-Series device...
+-- Current recv frame size: 1472 bytes
+-- Current send frame size: 1472 bytes
+
+UHD Warning:
+    The requested decimation is odd; the user should expect CIC rolloff.
+    Select an even decimation to ensure that a halfband filter is enabled.
+    decimation = dsp_rate/samp_rate -> 5 = (100.000000 MHz)/(20.000000 MHz)
+22 Feb 04:51:08 ntpdate[4459]: bind() fails: Permission denied
+Latching at  1456109468.31
+--     1) catch time transition at pps edge
+--     2) set times next pps (synchronously)
+
+UHD Warning:
+    The requested decimation is odd; the user should expect CIC rolloff.
+    Select an even decimation to ensure that a halfband filter is enabled.
+    decimation = dsp_rate/samp_rate -> 5 = (100.000000 MHz)/(20.000000 MHz)
+offset 0 t0 1456109471.000000
+sod-1456109514.out Thread 0, Next chirp sod, At Mon, 22, Feb, 2016, 02:51:54 60:594.000 0 0.0
+Lag: -0.0 Sec: 1456109513.99958 Usrp sec 1456109514.00000
+done processing...
+closing file...
+sod-1456109574.out Thread 0, Next chirp sod, At Mon, 22, Feb, 2016, 02:52:54 60:594.000 0 -0.0
+Lag: -0.0 Sec: 1456109573.99962 Usrp sec 1456109574.00000
+done processing...
+closing file...
+sod-1456109634.out Thread 0, Next chirp sod, At Mon, 22, Feb, 2016, 02:53:54 60:594.000 0 -0.0
+Lag: -0.0 Sec: 1456109633.99954 Usrp sec 1456109634.00000
+done processing...
+closing file...
+sod-1456109694.out Thread 0, Next chirp sod, At Mon, 22, Feb, 2016, 02:54:54 60:594.000 0 -0.0
+Lag: -0.0 Sec: 1456109693.99951 Usrp sec 1456109694.00000
+done processing...
+closing file...
+sod-1456109754.out Thread 0, Next chirp sod, At Mon, 22, Feb, 2016, 02:55:54 60:594.000 0 -0.0
+Lag: -0.0 Sec: 1456109753.99958 Usrp sec 1456109754.00000
+done processing...
+closing file...
+sod-1456109814.out Thread 0, Next chirp sod, At Mon, 22, Feb, 2016, 02:56:54 60:594.000 0 -0.0
+Lag: -0.0 Sec: 1456109813.99946 Usrp sec 1456109814.00000
+done processing...
+closing file...
+sod-1456109874.out Thread 0, Next chirp sod, At Mon, 22, Feb, 2016, 02:57:54 60:594.000 0 -0.0
+Lag: -0.0 Sec: 1456109873.99945 Usrp sec 1456109874.00000
+done processing...
+closing file...
+sod-1456109934.out Thread 0, Next chirp sod, At Mon, 22, Feb, 2016, 02:58:54 60:594.000 0 -0.0
