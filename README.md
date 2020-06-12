@@ -6,9 +6,9 @@ This is the new home for GNU Chirp Sounder. I no longer have access to the accou
 
 The software relies on Ettus Research USRP N2x0 hardware and a GPSDO, which can provide a 1 PPS and 10 MHz reference signal. In addition to this, you will need a wide band HF antenna. This antenna should be in a location that is as radio quite as possible, with good filtering of common mode interference. I recommend placing the antenna at least 100 meters from power lines and any electronic equipment. 
 
-## Prequisites
+## Software dependencies
 
-The code depends on gnuradio and the uhd driver. I've recently used the software with Gnuradio 3.7.11 and Ubuntu 18.04.
+The code depends on gnuradio and the uhd driver. I've recently used the software with Gnuradio 3.7.11 and Ubuntu 18.04. I also use at least: Numpy, FFTw, Scipy, and Matplotlib.
 
 ## Example
 
