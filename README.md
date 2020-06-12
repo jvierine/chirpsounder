@@ -8,7 +8,7 @@ The software relies on Ettus Research USRP N2x0 hardware and a GPSDO, which can 
 
 ## Prequisites
 
-The code depends on gnuradio and the uhd driver. 
+The code depends on gnuradio and the uhd driver. I've recently used the software with Gnuradio 3.7.11 and Ubuntu 18.04.
 
 ## Example
 
