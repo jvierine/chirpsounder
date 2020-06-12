@@ -20,13 +20,9 @@ The code depends on gnuradio and the uhd driver. I've recently used the software
 
 ![Alt text](/figures/cyprus1-1319882935.out.png)
 
-### Vertical sounding of the Sodankylä Chirp sounder
+### Vertical O-mode sounding of the Sodankylä Chirp sounder
 
-![Alt text](/figures/cyprus1-1319882935.out.png)
-
-### O-mode vertical incidence ionosgram for the Sodankylä ionosonde
-
-![Alt text](/figures/latest.sod.arg.png)
+![Alt text](/figures/latest.sod.mo.png | width=60%)
 Two linear polarizations are combined to form an O-mode ionogram.
 
 ### Dual polarization measurement of the Sodankylâ Chirp ionosonde
