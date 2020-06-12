@@ -14,23 +14,23 @@ The code depends on gnuradio and the uhd driver. I've recently used the software
 
 ### The Puerto Rico ROTHR transmitter recorded in Boston, MA
 
-![Alt text](/figures/pr-1381380140.out.png)
+![Alt text](/figures/pr-1381380140.out.png | width=640)
 
 ### The Cyprus 100 kHz/s sounder measured in Sodankylä
 
-![Alt text](/figures/cyprus1-1319882935.out.png)
+![Alt text](/figures/cyprus1-1319882935.out.png | width=640)
 
 ### Vertical O-mode sounding of the Sodankylä Chirp sounder
 
-![Alt text](/figures/latest.sod.mo.png | width=60%)
+![Alt text](/figures/latest.sod.mo.png | width=640)
 Two linear polarizations are combined to form an O-mode ionogram.
 
 ### Dual polarization measurement of the Sodankylâ Chirp ionosonde
 
-![Alt text](/figures/latest.sod.arg.png)
+![Alt text](/figures/latest.sod.arg.png | width=640)
 The phase difference indicates O and X-mode traces of the ionogram.
 
-## Video example
+### Animation example
 
 Click the video below to see an example of a recording of the Cheasapeake Bay and Puerto Rico over-the-horizon radar soundings recorded in Boston, MA. 
 
