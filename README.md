@@ -8,7 +8,7 @@ The software relies on Ettus Research USRP N2x0 hardware and a GPSDO, which can 
 
 ## Prequisites
 
-The code depends on gnuradio and the uhd driver. I am planning to migrate the code away from gnuradio, so that it only relies on the UHD driver. 
+The code depends on gnuradio and the uhd driver. 
 
 ## Example
 
@@ -23,3 +23,7 @@ Click the video below to see an example of a recording of the Cheasapeake Bay an
 ## Hardware example
 
 ![Alt text](/figures/ionorf.png)
+
+## Future plans
+
+I am planning to migrate the code away from gnuradio, so that it only relies on the UHD driver. This change will be done in such a way that also other software defined radio hardware could also more easily be supported. 
